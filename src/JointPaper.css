@@ -1,0 +1,8 @@
+.paper {
+    position: relative;
+}
+.paper > div {
+    position: absolute;
+    left: 0;
+    top: 0;
+}

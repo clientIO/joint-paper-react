@@ -1,23 +1,29 @@
-import logo from './logo.svg';
 import './App.css';
+import JointElement from './JointElement';
+import JointPaper from './JointPaper';
+
+
+const elements = [{
+  id: '1',
+}, {
+  id: '2',
+  x: 200,
+  y: 200,
+}];
 
 function App() {
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <JointPaper width="500" height="500" theme="material">
+        {elements.map(element => (
+          <JointElement
+            key={element.id}
+            id={element.id}
+            x={element.x}
+            y={element.y}
+          ></JointElement>
+        ))}
+      </JointPaper>
     </div>
   );
 }
