@@ -36,6 +36,6 @@ function JointElement(props) {
             </select>
         </div>
     );
-  }
+}
 
-  export default JointElement;
+export default JointElement;

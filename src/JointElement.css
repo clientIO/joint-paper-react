@@ -6,6 +6,8 @@
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
     border-radius: 4px;
     background: white;
+    width: 248px;
+    height: 186px;
 }
 
 .task::before {
@@ -50,14 +52,18 @@
 .task input, .task select {
     pointer-events: auto;
     display: block;
-    width: 200px;
     margin: 24px;
-    padding: 10px;
     border: solid 1px #DADADA;
     border-radius: 4px;
     color: #1c1c1c;
 }
 
+.task input {
+    width: 178px;
+    padding: 10px;
+}
+
 .task select {
-    padding: 4px 0;
+    width: 198px;
+    padding: 4px 10px;
 }
