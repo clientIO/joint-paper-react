@@ -1,33 +1,55 @@
+import { useEffect, useState } from 'react';
 import './JointElement.css';
 
 function JointElement(props) {
+    const { id, x = 0, y = 0, status = 'at-risk', title = 'Blank', assignment = '', updateElements } = props;
 
-    const { x = 0, y = 0, status = 'at-risk' } = props;
+    const [inputValue, setInputValue] = useState(assignment);
+    const [statusValue, setStatusValue] = useState(status);
+
+    const updateElementData = () => {
+        updateElements((currentCells) => {
+            return currentCells.map((cell) => {
+                if (cell.id === id) {
+                    cell.assignment = inputValue;
+                    cell.status = statusValue;
+                }
+
+                return cell;
+            });
+        }
+        );
+    }
+
+    useEffect(() => {
+        updateElementData()
+    }, [inputValue, statusValue]);
+
+    const onAssignmentChange = ({ target: { value }}) => setInputValue(value);
+
+    const onStatusChange = ({ target: { value }}) => setStatusValue(value);
 
     return (
         <div
-            // ref="taskElement"
             className="task"
-            data-status={status}
+            data-status={statusValue}
             style={{
                 left: `${x}px`,
                 top: `${y}px`,
             }}
         >
             <header>
-                <h1
-                // v-text="task.title"
-                >test</h1>
+                <h1>{title}</h1>
+                <i/>
             </header>
             <input
                 placeholder="Enter an assignment …"
-                // :value="task.assignment"
-                // @input="$emit('input', id, 'assignment', $event.target.value)"
+                onChange={onAssignmentChange}
+                value={inputValue}
             />
             <select
-                value={status}
-                onChange={()=>{}}
-                // @input="$emit('input', id, 'status', $event.target.value)"
+                value={statusValue}
+                onChange={onStatusChange}
                 >
                 <option disabled value="">Select status …</option>
                 <option value="done">Done</option>

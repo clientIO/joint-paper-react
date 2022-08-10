@@ -8,21 +8,25 @@ function JointPaper(props) {
     width = 1000,
     height = 1000,
     theme = 'default',
+    updateElements,
     elements
   } = props;
 
     const paperEl = useRef(null);
-    const [cells, setCells] = useState([]);
     const [matrix, setMatrix] = useState(V.createSVGMatrix());
 
+    const graph = useRef(new dia.Graph({}, { cellNamespace: shapes }));
+
     useEffect(() => {
-      const graph = new dia.Graph({}, { cellNamespace: shapes });
       const paper = new dia.Paper({
-        model: graph,
+        model: graph.current,
         cellViewNamespace: shapes,
         theme,
         width,
-        height
+        height,
+        background: {
+          color: '#F8F9FB',
+        },
       });
 
       paperEl.current.appendChild(paper.el);
@@ -31,65 +35,80 @@ function JointPaper(props) {
         setMatrix(paper.matrix());
       });
 
-      graph.on('change:position', (el) => {
-        setCells((currentCells) => {
-          const cellIndex = currentCells.findIndex(c => c.id === el.id);
-          const cell = currentCells[cellIndex];
+      graph.current.on('change:position', (el) => {
+        updateElements((currentCells) => {
+          return currentCells.map((cell) => {
+            if (cell.id === el.id) {
+              const { x, y } = el.position();
 
-          const { x, y } = el.position();
-          cell.position = { x, y };
+              cell.x = x;
+              cell.y = y;
+            }
 
-          const newCells = currentCells.filter(c => c.id !== el.id);
-          return [...newCells, cell];
+            return cell;
+          });
         });
       });
 
-      const tempCells = [];
+      return () => {
+        paper.remove();
+      }
+    }, [])
+
+    useEffect(() => {
       const tempElements = [];
+      const idElementMap = {};
+      const links = [];
 
       elements.forEach(elementData => {
-        const { id, elementType, x = 0, y = 0, ...element } = elementData;
+        const { id, elementType, targets = [], x = 0, y = 0 } = elementData;
+        let currentEl = null;
 
         switch (elementType) {
           case 'task':
-            tempCells.push({
-              id,
-              position: { x, y },
-              status: element.status,
-              elementType,
-            });
-
             const rect = new shapes.standard.Rectangle()
             .set('id', id)
             .attr({body: { fill: 'transparent', strokeWidth: 0 }})
             .resize(248, 186)
             .position(x, y);
 
-            tempElements.push(rect)
+            currentEl = rect;
             break;
           default:
             // TODO Implement new element types here
             throw new Error(`Unknown element type: ${elementType}`);
         }
+
+        tempElements.push(currentEl);
+        idElementMap[id] = currentEl;
+
+        targets.forEach(targetId => {
+          links.push({
+            source: id,
+            target: targetId,
+          });
+        });
       });
 
-      setCells(tempCells);
-      graph.resetCells(tempElements);
+      links.forEach(linkData => {
+        const link = new shapes.standard.Link();
+        link.source(idElementMap[linkData.source]);
+        link.target(idElementMap[linkData.target]);
+        tempElements.push(link);
+      });
 
-      return () => {
-        paper.remove();
-      }
-    }, []);
+      graph.current.resetCells(tempElements);
+    }, [elements.length]);
 
     const renderElements = () => {
-      let elements = [];
+      const nodes = [];
 
-      cells.forEach((cellData) => {
-        const { id, elementType, position, ...element } = cellData;
+      elements.forEach((cellData) => {
+        const { elementType, ...element } = cellData;
 
         switch (elementType) {
           case 'task':
-            elements.push(<JointElement key={id} x={position.x} y={position.y} {...element} />)
+            nodes.push(<JointElement key={element.id} updateElements={updateElements} {...element} />)
             break;
           default:
             // TODO Implement new element types here
@@ -97,7 +116,7 @@ function JointPaper(props) {
         }
       });
 
-      return elements;
+      return nodes;
     }
 
     return (
@@ -107,7 +126,6 @@ function JointPaper(props) {
         <div
           ref={paperEl}
           style={{
-            border: "1px solid gray",
             display: "inline-block",
           }}>
         </div>
