@@ -1,24 +1,28 @@
 import './JointPaper.css';
-import { dia, V, shapes } from 'jointjs';
-import { useEffect, useRef, useState } from 'react';
+import { dia, shapes } from 'jointjs';
+import { useContext, useEffect, useRef } from 'react';
 import JointElement from './JointElement';
+import GraphContext from './GraphContext';
 
 function JointPaper(props) {
   const {
     width = 1000,
     height = 1000,
     theme = 'default',
+    scale,
     updateElements,
-    elements
+    elements,
+    elementsPositions,
+    setElementsPositions
   } = props;
 
     const paperEl = useRef(null);
-    const [matrix, setMatrix] = useState(V.createSVGMatrix());
-
-    const graph = useRef(new dia.Graph({}, { cellNamespace: shapes }));
+    const nodeRefs = useRef({});
+    const graph = useContext(GraphContext);
+    const paper = useRef();
 
     useEffect(() => {
-      const paper = new dia.Paper({
+      const paperClone = new dia.Paper({
         model: graph.current,
         cellViewNamespace: shapes,
         theme,
@@ -29,58 +33,51 @@ function JointPaper(props) {
         },
       });
 
-      paperEl.current.appendChild(paper.el);
-
-      paper.on('scale translate', () => {
-        setMatrix(paper.matrix());
-      });
+      paper.current = paperClone;
+      paperEl.current.appendChild(paperClone.el);
 
       graph.current.on('change:position', (el) => {
-        updateElements((currentCells) => {
-          return currentCells.map((cell) => {
-            if (cell.id === el.id) {
-              const { x, y } = el.position();
+        setElementsPositions((positions) => {
+          const elementView = paper.current.findViewByModel(el);
+          const { x, y } = elementView.getBBox({ useModelGeometry: true });
+          positions[el.id] = { x, y };
 
-              cell.x = x;
-              cell.y = y;
-            }
+          const newPositions = { ...positions, [el.id]: { x, y } };
 
-            return cell;
-          });
+          return newPositions;
         });
       });
 
       return () => {
-        paper.remove();
+        paperClone.remove();
       }
-    }, [])
+    }, []);
 
     useEffect(() => {
       const tempElements = [];
-      const idElementMap = {};
       const links = [];
 
       elements.forEach(elementData => {
-        const { id, elementType, targets = [], x = 0, y = 0 } = elementData;
-        let currentEl = null;
+        const { id, elementType, targets = [] } = elementData;
+        const elementPosition = elementsPositions[id] || { x: 0, y: 0 };
+
+        const widthEl = nodeRefs.current[id].firstChild.offsetWidth;
+        const heightEl = nodeRefs.current[id].firstChild.offsetHeight;
 
         switch (elementType) {
           case 'task':
             const rect = new shapes.standard.Rectangle()
-            .set('id', id)
-            .attr({body: { fill: 'transparent', strokeWidth: 0 }})
-            .resize(248, 186)
-            .position(x, y);
+              .set('id', id)
+              .attr({body: { fill: 'transparent', strokeWidth: 0 }})
+              .resize(widthEl, heightEl)
+              .position(elementPosition.x, elementPosition.y);
 
-            currentEl = rect;
+            tempElements.push(rect);
             break;
           default:
             // TODO Implement new element types here
             throw new Error(`Unknown element type: ${elementType}`);
         }
-
-        tempElements.push(currentEl);
-        idElementMap[id] = currentEl;
 
         targets.forEach(targetId => {
           links.push({
@@ -92,36 +89,51 @@ function JointPaper(props) {
 
       links.forEach(linkData => {
         const link = new shapes.standard.Link();
-        link.source(idElementMap[linkData.source]);
-        link.target(idElementMap[linkData.target]);
+        link.source({ id: linkData.source });
+        link.target({ id: linkData.target });
         tempElements.push(link);
       });
 
       graph.current.resetCells(tempElements);
     }, [elements.length]);
 
-    const renderElements = () => {
-      const nodes = [];
+    useEffect(() => {
+      const size = paper.current.getComputedSize();
 
-      elements.forEach((cellData) => {
-        const { elementType, ...element } = cellData;
+      paper.current.translate(0, 0)
+      paper.current.scale(scale, scale, size.width / 2, size.height / 2);
+
+      graph.current.getElements().forEach((element) => {
+        const elementView = paper.current.findViewByModel(element);
+        const { x, y } = elementView.getBBox({ useModelGeometry: true });
+        setElementsPositions((positions) => {
+          const newPositions = { ...positions, [element.id]: { x, y } };
+
+          return newPositions;
+        });
+      });
+    }, [scale]);
+
+    const renderElements = () => {
+      return elements.map((cellData) => {
+        const { elementType, x: _x, y: _y, ...element } = cellData;
+
+        const { x, y } = elementsPositions[element.id] ?? { x: 0, y: 0 };
 
         switch (elementType) {
           case 'task':
-            nodes.push(<JointElement key={element.id} updateElements={updateElements} {...element} />)
-            break;
+            return <div key={element.id} ref={el => (nodeRefs.current[element.id] = el)}><JointElement scale={scale} x={x} y={y} updateElements={updateElements} {...element} /></div>
           default:
             // TODO Implement new element types here
             throw new Error(`Unknown element type: ${elementType}`);
         }
       });
-
-      return nodes;
     }
 
     return (
       <div
         className="paper"
+        style={{ width: `${width}px`, height: `${height}px` }}
       >
         <div
           ref={paperEl}
@@ -129,12 +141,7 @@ function JointPaper(props) {
             display: "inline-block",
           }}>
         </div>
-        <div
-        style={{
-          transformOrigin: '0 0',
-          transform: V.matrixToTransformString(matrix)
-        }}
-        >{renderElements()}</div>
+        <div>{renderElements()}</div>
       </div>
     );
   }
