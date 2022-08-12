@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import './JointElement.css';
 
 function JointElement(props) {
-    const { id, x = 0, y = 0, status = 'at-risk', title = 'Blank', assignment = '', updateElements, scale } = props;
+    const { id, x = 0, y = 0, status = 'at-risk', title = 'Blank', assignment = '', updateElements } = props;
 
     const [inputValue, setInputValue] = useState(assignment);
     const [statusValue, setStatusValue] = useState(status);
@@ -41,8 +41,6 @@ function JointElement(props) {
             style={{
                 left: `${x}px`,
                 top: `${y}px`,
-                transform: `scale(${scale})`,
-                transformOrigin: '0 0',
             }}
         >
             <header>

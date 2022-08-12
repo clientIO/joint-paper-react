@@ -1,6 +1,6 @@
 import './JointPaper.css';
-import { dia, shapes } from 'jointjs';
-import { useContext, useEffect, useRef } from 'react';
+import { dia, shapes, V } from 'jointjs';
+import { useContext, useEffect, useRef, useState } from 'react';
 import JointElement from './JointElement';
 import GraphContext from './GraphContext';
 
@@ -20,6 +20,7 @@ function JointPaper(props) {
     const nodeRefs = useRef({});
     const graph = useContext(GraphContext);
     const paper = useRef();
+    const [matrix, setMatrix] = useState(V.createSVGMatrix())
 
     useEffect(() => {
       const paperClone = new dia.Paper({
@@ -38,11 +39,8 @@ function JointPaper(props) {
 
       graph.current.on('change:position', (el) => {
         setElementsPositions((positions) => {
-          const elementView = paper.current.findViewByModel(el);
-          const { x, y } = elementView.getBBox({ useModelGeometry: true });
-          positions[el.id] = { x, y };
-
-          const newPositions = { ...positions, [el.id]: { x, y } };
+          const { x, y } = el.position();
+          const newPositions = { ...positions, [el.id]: { x: x, y } };
 
           return newPositions;
         });
@@ -99,19 +97,9 @@ function JointPaper(props) {
 
     useEffect(() => {
       const size = paper.current.getComputedSize();
-
       paper.current.translate(0, 0)
       paper.current.scale(scale, scale, size.width / 2, size.height / 2);
-
-      graph.current.getElements().forEach((element) => {
-        const elementView = paper.current.findViewByModel(element);
-        const { x, y } = elementView.getBBox({ useModelGeometry: true });
-        setElementsPositions((positions) => {
-          const newPositions = { ...positions, [element.id]: { x, y } };
-
-          return newPositions;
-        });
-      });
+      setMatrix(paper.current.matrix());
     }, [scale]);
 
     const renderElements = () => {
@@ -122,7 +110,7 @@ function JointPaper(props) {
 
         switch (elementType) {
           case 'task':
-            return <div key={element.id} ref={el => (nodeRefs.current[element.id] = el)}><JointElement scale={scale} x={x} y={y} updateElements={updateElements} {...element} /></div>
+            return <div key={element.id} ref={el => (nodeRefs.current[element.id] = el)}><JointElement x={x} y={y} updateElements={updateElements} {...element} /></div>
           default:
             // TODO Implement new element types here
             throw new Error(`Unknown element type: ${elementType}`);
@@ -141,7 +129,12 @@ function JointPaper(props) {
             display: "inline-block",
           }}>
         </div>
-        <div>{renderElements()}</div>
+        <div
+          style={{
+            transformOrigin: '0 0',
+            transform: V.matrixToTransformString(matrix),
+          }}
+        >{renderElements()}</div>
       </div>
     );
   }
