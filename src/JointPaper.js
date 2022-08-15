@@ -23,7 +23,7 @@ function JointPaper(props) {
     const [matrix, setMatrix] = useState(V.createSVGMatrix())
 
     useEffect(() => {
-      const paperClone = new dia.Paper({
+      paper.current = new dia.Paper({
         model: graph.current,
         cellViewNamespace: shapes,
         theme,
@@ -34,8 +34,7 @@ function JointPaper(props) {
         },
       });
 
-      paper.current = paperClone;
-      paperEl.current.appendChild(paperClone.el);
+      paperEl.current.appendChild(paper.current.el);
 
       graph.current.on('change:position', (el) => {
         setElementsPositions((positions) => {
@@ -47,7 +46,8 @@ function JointPaper(props) {
       });
 
       return () => {
-        paperClone.remove();
+        graph.current.off('change:position');
+        paper.current.remove();
       }
     }, []);
 
@@ -59,8 +59,8 @@ function JointPaper(props) {
         const { id, elementType, targets = [] } = elementData;
         const elementPosition = elementsPositions[id] || { x: 0, y: 0 };
 
-        const widthEl = nodeRefs.current[id].firstChild.offsetWidth;
-        const heightEl = nodeRefs.current[id].firstChild.offsetHeight;
+        const widthEl = nodeRefs.current[id].offsetWidth;
+        const heightEl = nodeRefs.current[id].offsetHeight;
 
         switch (elementType) {
           case 'task':
@@ -110,7 +110,7 @@ function JointPaper(props) {
 
         switch (elementType) {
           case 'task':
-            return <div key={element.id} ref={el => (nodeRefs.current[element.id] = el)}><JointElement x={x} y={y} updateElements={updateElements} {...element} /></div>
+            return <JointElement key={element.id} ref={el => (nodeRefs.current[element.id] = el)} x={x} y={y} updateElements={updateElements} {...element} />;
           default:
             // TODO Implement new element types here
             throw new Error(`Unknown element type: ${elementType}`);

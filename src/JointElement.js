@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, forwardRef } from 'react';
 import './JointElement.css';
 
-function JointElement(props) {
+const JointElement = forwardRef((props, ref) => {
     const { id, x = 0, y = 0, status = 'at-risk', title = 'Blank', assignment = '', updateElements } = props;
 
     const [inputValue, setInputValue] = useState(assignment);
@@ -36,6 +36,7 @@ function JointElement(props) {
 
     return (
         <div
+            ref={ref}
             className="task"
             data-status={statusValue}
             style={{
@@ -63,6 +64,6 @@ function JointElement(props) {
             </select>
         </div>
     );
-}
+});
 
 export default JointElement;
