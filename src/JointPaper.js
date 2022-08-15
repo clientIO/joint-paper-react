@@ -12,8 +12,6 @@ function JointPaper(props) {
     scale,
     updateElements,
     elements,
-    elementsPositions,
-    setElementsPositions
   } = props;
 
     const paperEl = useRef(null);
@@ -36,12 +34,34 @@ function JointPaper(props) {
 
       paperEl.current.appendChild(paper.current.el);
 
-      graph.current.on('change:position', (el) => {
-        setElementsPositions((positions) => {
-          const { x, y } = el.position();
-          const newPositions = { ...positions, [el.id]: { x: x, y } };
+      graph.current.on('change:position', (movedEl) => {
+        updateElements((elements) => {
+          return elements.map((element) => {
+            if (element.id === movedEl.id) {
+              const { x, y } = movedEl.position();
 
-          return newPositions;
+              element.x = x;
+              element.y = y;
+            }
+            return element;
+          });
+        });
+      });
+
+      paper.current.on('blank:pointerdblclick', (_evt, x, y) => {
+        updateElements((elements) => {
+          const newElement = {
+            id: `${elements.length + 1}`,
+            title: 'New Task',
+            assignment: '',
+            elementType: 'task',
+            status: 'pending',
+            targets: [],
+            x,
+            y
+          };
+
+          return [...elements, newElement];
         });
       });
 
@@ -55,9 +75,8 @@ function JointPaper(props) {
       const tempElements = [];
       const links = [];
 
-      elements.forEach(elementData => {
-        const { id, elementType, targets = [] } = elementData;
-        const elementPosition = elementsPositions[id] || { x: 0, y: 0 };
+      elements.forEach(element => {
+        const { id, elementType, targets = [], x, y } = element;
 
         const widthEl = nodeRefs.current[id].offsetWidth;
         const heightEl = nodeRefs.current[id].offsetHeight;
@@ -68,7 +87,7 @@ function JointPaper(props) {
               .set('id', id)
               .attr({body: { fill: 'transparent', strokeWidth: 0 }})
               .resize(widthEl, heightEl)
-              .position(elementPosition.x, elementPosition.y);
+              .position(x, y);
 
             tempElements.push(rect);
             break;
@@ -104,13 +123,20 @@ function JointPaper(props) {
 
     const renderElements = () => {
       return elements.map((cellData) => {
-        const { elementType, x: _x, y: _y, ...element } = cellData;
-
-        const { x, y } = elementsPositions[element.id] ?? { x: 0, y: 0 };
+        const { elementType, x = 0, y = 0, ...element } = cellData;
 
         switch (elementType) {
           case 'task':
-            return <JointElement key={element.id} ref={el => (nodeRefs.current[element.id] = el)} x={x} y={y} updateElements={updateElements} {...element} />;
+            return (
+              <JointElement
+                key={element.id}
+                ref={el => (nodeRefs.current[element.id] = el)}
+                x={x}
+                y={y}
+                updateElements={updateElements}
+                {...element} 
+              />
+            );
           default:
             // TODO Implement new element types here
             throw new Error(`Unknown element type: ${elementType}`);
@@ -134,7 +160,9 @@ function JointPaper(props) {
             transformOrigin: '0 0',
             transform: V.matrixToTransformString(matrix),
           }}
-        >{renderElements()}</div>
+        >
+          {renderElements()}
+        </div>
       </div>
     );
   }
