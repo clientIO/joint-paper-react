@@ -1,5 +1,5 @@
 import './JointPaper.css';
-import { dia, shapes, V } from 'jointjs';
+import { dia, shapes, V, elementTools } from 'jointjs';
 import { useContext, useEffect, useRef, useState } from 'react';
 import JointElement from './JointElement';
 import GraphContext from './GraphContext';
@@ -27,6 +27,20 @@ function JointPaper(props) {
         theme,
         width,
         height,
+        defaultLink: new shapes.standard.Link(),
+        validateConnection: (sourceView, _sourceMagnet, targetView, _targetMagnet) => {
+          if (targetView.model.isLink()) return false;
+          if (sourceView === targetView) return false
+          const alreadyConnected = graph.current.getLinks().some((link) => {
+            const { id: sourceId } = link.source();
+            const { id: targetId } = link.target();
+
+            return sourceId === sourceView.model.id && targetId === targetView.model.id;
+          })
+
+          return !alreadyConnected;
+        },
+        allowLink: (linkView) => !!linkView.model.target().id,
         background: {
           color: '#F8F9FB',
         },
@@ -63,6 +77,48 @@ function JointPaper(props) {
 
           return [...elements, newElement];
         });
+      });
+
+      let selectedView = null;
+
+      paper.current.on('element:pointerclick', (elementView) => {
+        const tools = new dia.ToolsView({
+          tools: [
+            new elementTools.Connect({
+              x: '100%',
+              offset: { x: 5, y: -5 }
+            })
+          ]
+        });
+
+        elementView.addTools(tools);
+        if (selectedView && selectedView.id !== elementView.id) selectedView.removeTools();
+        selectedView = elementView;
+      });
+
+      paper.current.on('blank:pointerclick', () => {
+        if (selectedView) selectedView.removeTools();
+        selectedView = null;
+      });
+      
+      paper.current.on('link:connect', (linkView) => {
+        const link = linkView.model;
+        const { id: sourceId } = link.source();
+        const { id: targetId } = link.target();
+
+        updateElements((elements) => {
+          return elements.map((element) => {
+            if (element.id === sourceId) {
+              const targets = element.targets ?? [];
+              const newTargets = [...new Set([...targets, targetId])];
+              element.targets = newTargets;
+            }
+
+            return element;
+          });
+        });
+        
+        link.remove();
       });
 
       return () => {
