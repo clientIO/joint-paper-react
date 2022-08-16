@@ -72,47 +72,64 @@ function JointPaper(props) {
     }, []);
 
     useEffect(() => {
-      const tempElements = [];
       const links = [];
 
-      elements.forEach(element => {
+      for (const graphEl of graph.current.getElements()) {
+        const isInElements = elements.some((element) => element.id === graphEl.id);
+        if (!isInElements) graph.current.removeCells([graphEl]);
+      }
+
+      for (const element of elements) {
         const { id, elementType, targets = [], x, y } = element;
 
         const widthEl = nodeRefs.current[id].offsetWidth;
         const heightEl = nodeRefs.current[id].offsetHeight;
 
-        switch (elementType) {
-          case 'task':
-            const rect = new shapes.standard.Rectangle()
-              .set('id', id)
-              .attr({body: { fill: 'transparent', strokeWidth: 0 }})
-              .resize(widthEl, heightEl)
-              .position(x, y);
+        const cell = graph.current.getCell(id);
 
-            tempElements.push(rect);
-            break;
-          default:
-            // TODO Implement new element types here
-            throw new Error(`Unknown element type: ${elementType}`);
+        if (!cell) {
+          let tempEl = null;
+          switch (elementType) {
+            case 'task':
+              const rect = new shapes.standard.Rectangle()
+                .set('id', id)
+                .attr({body: { fill: 'transparent', strokeWidth: 0 }})
+                .resize(widthEl, heightEl)
+                .position(x, y);
+
+              tempEl = rect;
+              break;
+            default:
+              // TODO Implement new element types here
+              throw new Error(`Unknown element type: ${elementType}`);
+          }
+
+          graph.current.addCell(tempEl);
+        } else {
+          cell.position(x, y).resize(widthEl, heightEl);
         }
 
         targets.forEach(targetId => {
+          const linkInGraph = graph.current.getCell(`${id}-${targetId}`);
+          const targetEl = graph.current.getCell(targetId);
+
+          if (linkInGraph || !targetEl) return;
+
           links.push({
             source: id,
             target: targetId,
           });
         });
-      });
+      }
 
       links.forEach(linkData => {
-        const link = new shapes.standard.Link();
+        const link = new shapes.standard.Link().set('id', `${linkData.source}-${linkData.target}`);
         link.source({ id: linkData.source });
         link.target({ id: linkData.target });
-        tempElements.push(link);
+        graph.current.addCell(link)
       });
 
-      graph.current.resetCells(tempElements);
-    }, [elements.length]);
+    }, [elements]);
 
     useEffect(() => {
       const size = paper.current.getComputedSize();
