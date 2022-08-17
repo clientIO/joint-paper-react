@@ -1,6 +1,6 @@
 # joint-paper-react
 
-This git repository is intended for instructional purposes, it shows hot to integrate react components with JointJS.
+This git repository is intended for instructional purposes, it shows how to integrate react components with JointJS.
 
 ## Available Scripts
 
