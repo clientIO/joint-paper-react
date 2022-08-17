@@ -27,6 +27,15 @@ function JointPaper(props) {
         theme,
         width,
         height,
+        clickThreshold: 10,
+        highlighting: {
+        connecting: {
+          name: 'stroke',
+          options: {
+            padding: 6
+            }
+          }
+        },
         defaultLink: new shapes.standard.Link(),
         validateConnection: (sourceView, _sourceMagnet, targetView, _targetMagnet) => {
           if (targetView.model.isLink()) return false;
@@ -87,7 +96,8 @@ function JointPaper(props) {
             new elementTools.Connect({
               x: '100%',
               offset: { x: 5, y: -5 }
-            })
+            }),
+            new elementTools.Boundary(),
           ]
         });
 
@@ -118,6 +128,7 @@ function JointPaper(props) {
           });
         });
         
+        // We can remove this link because proper one will be created in useEffect triggered by state change
         link.remove();
       });
 
@@ -149,7 +160,7 @@ function JointPaper(props) {
             case 'task':
               const rect = new shapes.standard.Rectangle()
                 .set('id', id)
-                .attr({body: { fill: 'transparent', strokeWidth: 0 }})
+                .attr({ body: { fill: 'transparent', strokeWidth: 0 }})
                 .resize(widthEl, heightEl)
                 .position(x, y);
 

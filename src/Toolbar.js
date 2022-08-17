@@ -24,7 +24,7 @@ function Toolbar ({ zoomOut, zoomIn, reset }) {
         color: copied ? '#fff' : '#000',
       }}
     >
-      {copied ? 'Copied' : 'Copy'}
+      {copied ? 'Copied' : 'JSON to clipboard'}
     </button>
   </div>
   )
