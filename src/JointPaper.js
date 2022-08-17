@@ -71,6 +71,14 @@ function JointPaper(props) {
         });
       });
 
+      graph.current.on('remove', (cell) => {
+        if (cell.isLink()) return;
+
+        updateElements((elements) => {
+          return elements.filter((element) => element.id !== cell.id);
+        });
+      });
+
       paper.current.on('blank:pointerdblclick', (_evt, x, y) => {
         updateElements((elements) => {
           const newElement = {
@@ -93,11 +101,15 @@ function JointPaper(props) {
       paper.current.on('element:pointerclick', (elementView) => {
         const tools = new dia.ToolsView({
           tools: [
+            new elementTools.Boundary(),
             new elementTools.Connect({
               x: '100%',
-              offset: { x: 5, y: -5 }
+              offset: { x: 10, y: 5 }
             }),
-            new elementTools.Boundary(),
+            new elementTools.Remove({
+              x: '100%',
+              offset: { x: 10, y: 20 }
+            })
           ]
         });
 
@@ -134,6 +146,7 @@ function JointPaper(props) {
 
       return () => {
         graph.current.off('change:position');
+        graph.current.off('remove');
         paper.current.remove();
       }
     }, []);
