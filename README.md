@@ -1,6 +1,6 @@
-# Getting Started with Create React App
+# joint-paper-react
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This git repository is intended for instructional purposes, it shows how to integrate react components with JointJS.
 
 ## Available Scripts
 
